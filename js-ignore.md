@@ -1,6 +1,6 @@
-## 重温js权威指南
+## 温js权威指南
 
-#### 一. 类型、值、变量
+#### 一、类型、值、变量
 
 ###### 1.1 js数据类型分为原始类型和对象类型
 
@@ -115,6 +115,10 @@ console.log(typeof(N)) //object
 10 + " objects" // => "10 objects" 数字10转换为字符串
 "7" * "4" // => 28 两个字符换均转换为数字
 1 - 'x' // => NaN 字符串"x"无法转换为数字
+1 + {} // => "1[Object Object]" 先将对象转换为字符串
+true + true // => 2 先布尔值转换为数值类型
+2 + null // => 2 先将null转换后为0
+2 + undefined // => NaN 先将undefined转换为NaN
 //关于JavaScript的类型转换可查阅文档 其中值得注意的是undefined转换为数值类型为NaN，""、null、false转换为数值类型时为0，原始值转换为对象可用String()、Number()、Boolean()构造函数转换为各自的包装类型
 undefined、null转换为对象会报错
 ```
@@ -146,7 +150,7 @@ Object(undefined) // => {}
   parseFloat(" .14 meters") // => 0.14
   parseInt(".1") // => NaN 整数不能以.开始
   parseFloat("$3.14") // => NaN 数字不能以$开始
-  
+
   //parseInt可接受第二个参数 这个参数指定数字转换的基数，取值范围是(2 ~ 36)
   parseInt("11", 2) // => 3 (1*2 + 1)
   parseInt("ff", 16) // => 255 (15*16 + 5)
@@ -155,5 +159,304 @@ Object(undefined) // => {}
   parseInt("077", 10) // => 77 (7*10 + 7)
   ```
 
-1.7 .1 对象转换为原始值
+1.7 .2 对象转换为原始值
+
+- 对象到布尔值：所有对象(包括包装对象)都将转换为true
+
+- 对象到字符串和数字：所有对象都会继承两个转换方法，
+
+  toString()--作用是反映这个对象的字符串
+
+  ```javascript
+  ({x: 1,y: 2}).toString() // => "{object object}"
+  [1, 2, 3].toString() // => "1,2,3"
+  (function(x){ f(x);}).toString() // => "function(x){ f(x);}"
+  /\d+/g.toString() // => "/\d+/g" 
+  new	Date(2010,0,1).toString() // => "Fri Jan 01 2010 00:00:00 GMT+0800 (中国标准时间)"
+  ```
+
+  valueOf()--如果存在任意原始值，就默认将对象装换为表示他的原始值，如果对象是复合值，将返回对象本身，然而，对于日期类型，将返回它的一个内部表示：1970年1月1日以来的毫秒数。
+
+  ```javascript
+  new String('abc').valueOf() // => "abc" 对象装换为表示他的原始值
+  ({x: 1,y: 2}).valueOf() // => "{x: 1,y: 2}"
+  [1, 2, 3].valueOf() // => "[1, 2, 3]"
+  (function(x){ f(x);}).valueOf() // => "function(x){ f(x);}"
+  /\d+/g.valueOf() // => "/\d+/g"
+  new	Date(2010,0,1).valueOf() // => "1262275200000"
+  ```
+
+  > 对象到字符串转换步骤：先调用toString()，如果他返回一个原始值，JavaScript再将这个值转换为字符串返回
+  >
+  > 如果对象没有toString()方法，**或者这个方法并不返回一个原始值**，JavaScript会调用valueOf()，如果返回值是原始值，如果他返回一个原始值，JavaScript再将这个值转换为字符串返回
+  >
+  > 如果对象没有以上两个方法，则会抛出异常
+
+  对象转换到数字：跟对象转换到字符串相同，只是会先尝试调用valueOf()
+
+  > 综上：**对于所有非日期类型，对象到原始值的转换基本上是对象到数字的转换(首先调用valueOf())，原因是绝大部分对象都不是包装类型对象，所以调用toString()方法时不会返回原始值，对于日期类型会使用对象到字符串的转换规则**
+
+  对象和“+”、“-”、“==”、“>” 的运算中，会先做对象到原始值的转换，除了日期类型：所有对象都会先尝试调用valueOf()，再调用toString()，不管得到的原始值是否可用，都不再进一步转换为字符串或数字，对于日期类型：
+
+  ```javascript
+  var now = new Date(); // 创建一个日期对象
+  typeof (now + 1) // string "+"将日期转换为字符串
+  typeof (now - 1) // number "-"使用对象到数字的转换
+  now == now.toString(); // true 隐式和显式的字符串转换
+  now > （now - 1）// true ">"将日期转换为数字
+  ```
+
+
+#### 二、表达式和运算符
+
+###### 2.1 原始表达式
+
+> 原始表达式是表达式的最小单位--它们不再包含其它表达式，包括常量(直接量)、关键字和变量都属于原始表达式
+
+###### 2.2 属性访问表达式
+
+> expression .identifier：适合访问的属性名为合法的标识符
+>
+> expression [identifier]：会先计算方括号内的表达式的值并将其装换为字符串，如果属性名称是一个保留字或者包含空格和标点符号，或是一个数字(对于数组)，必须使用方括号的写法
+
+###### 2.3 算术表达式
+
+> 注意a++ 和++a的区别
+>
+> ++x 会先将x转换为数字再加1 如x = "1" 则结果为2
+>
+> 5/2 结果为2.5而不是2
+>
+> 求余运算符(%)也适用于浮点数，如6.5%2.1 结果为0.2
+
+2.3.1 位运算符 ==》用时查阅
+
+###### 2.4 关系表达式
+
+2.4.1 相等和不相等运算符var i= 2;
+data = [1, 2, 3, 4, 5, 6]
+data[i++] = data[i++] * 2
+
+对于“===”
+
+> 如果两个值都是null 或undefined 则这两个值不相等
+>
+> 通过x !== x来判断x是否为NaN
+>
+> 0和-0相等
+
+对于“<”
+
+> "11" < "3" 结果为true 两个字符串的比较 如果为字母是区分大小写的 所有大写字母ASCII值都“小于”小写字母ASCII值
+>
+> "11" < 3 结果为false 先将"11" 转换为 11
+>
+> "one" < 3 结果为NaN 先将"one" 转换为NaN
+
+对于逻辑非“!”
+
+> !(p && q) === !p || !q
+>
+> !(p || q) === !p && !q
+
+2.4.2 ”in“运算符
+
+```javascript
+var point = {x: 1, y: 2};
+"x" in point // => true 
+"toString" in point // => true 对象继承了toString()方法
+
+var data = [1, 2, 3];
+"0" in data // => true 数组包含元素"0"
+1 in data // => true 数字转换为字符串
+3 in data // => false 没有索引为3的元素
+```
+
+2.4.3 ”instanceof“运算符
+
+> a instanceof b 希望a为一个对象，希望b为标识对象的类(初始化它们的构造函数来定义)，如果a是b(或者b的“父类”)的实例则返回true，否则返回false
+
+2.4.3 带操作的赋值运算符
+
+```javascript
+var i= 2;
+data = [1, 2, 3, 4, 5, 6]
+data[i++] *= 2
+console.log(data);
+// => [1, 2, 6, 4, 5, 6]
+var n= 2;
+data = [1, 2, 3, 4, 5, 6]
+data[n++] = data[n++] * 2
+// => [1, 2, 8, 4, 5, 6]
+```
+
+2.4.4 eval()
+
+> 只有一个参数，如果此参数不是字符串，则直接返回这个参数，如果是字符串，则会把字符串当成js代码进行编译
+
+2.4.5 typeof运算符
+
+> 可带括号typeof(x)
+
+| x          | typeof x                                 |
+| ---------- | ---------------------------------------- |
+| undefined  | undefined                                |
+| null       | object                                   |
+| true或false | boolean                                  |
+| 任意数字或NaN   | number                                   |
+| 任意字符串      | string                                   |
+| 任意函数       | function                                 |
+| 任意内置对象     | object                                   |
+| 任意宿主对象     | 由编译器各自实现的字符串，但不是“undefined”, "boolean", "number", "string" |
+
+> 内置对象：如数组、函数、日期和正则表达式等
+> 宿主对象：有宿主提供的对象，在浏览器中window对象以及其下边所有的子对象(如bom、dom等等)，在node中是globla及其子对象，也包含自定义的类对象。【何为“宿主对象”？  在web中，ECMAScript中的“宿主”当然就是我们网页的运行环境，即“操作系统”和“浏览器”。所有非本地对象都是宿主对象（host object），即由 ECMAScript 实现的宿主环境提供的对象。】
+> 全局对象：一般全局对象会有两个，一个是ecma提供的Global对象，一个是宿主提供。如在浏览器中是window、在nodejs中是global。【所以啊，在浏览器中全局对象是Global+window】
+> 通常情况下ecma提供的Global对象对是不存在的，没有具体的对象，
+
+2.4.5 delete运算符
+
+> 不能操作var语句声明的变量、function语句定义的函数和函数的参数
+
+```javascript
+//操作数组时：
+var a = [1, 2, 3];
+delete a[2]
+2 in a  // => false // => 3 
+a.length() // => 3 并不改变数组长度 只是将数组“掏了个洞”
+```
+
+#### 三、语句
+
+###### 3.1 条件语句
+
+3.1.1 switch
+
+> 在函数中使用switch，break可用return代替，case后面避免使用表达式，case匹配时执行的是“===”
+>
+> continue可代替break终止本轮循环并开始下一次循环
+
+###### 3.2 循环语句
+
+3.2.1 for语句
+
+> for循环中那三个表达式任意一个都可以不写，但两个分号必须写，如果不写“test”表达式则会是一个死循环，
+>
+> 如for(;;), for(var i = 0;; i++)
+
+3.2.1 for/in语句
+
+```javascript
+//可将o中属性复制到数组中
+var o = {x: 1, y: 2, z: 3};
+var a = [], i = 0;
+for(a[i++] in o) //此处为a[i++] 而不能为a[i],否则i不会自增导致数组中只有一个元素
+```
+
+3.2 标签语句
+
+> break和continue是javascript中唯一可以使用语句标签的语句
+>
+> break labelname;
+
+3.3 "use strict"
+
+> 严格模式中禁止使用with语句
+>
+> 所有变量需先声明
+>
+> 调用的函数(不是方法)中的this值是undefined
+>
+> 通过call()或apply()来调用函数时，其中this值是通过call()或apply()传入的第一个参数(在非严格模式中，null和undefined值被全局对象和转换为对象的非对象值所代替)
+>
+> 给只读属性赋值或给不可扩展的对象增加新成员会抛出类型异常错误(在非严格模式中这些操作会失败而不是报错)
+
+#### 四、对象
+
+理解
+
+> JsvaScript中的对象可以从一个称为原型的对象继承属性，对象的方法通常是继承的属性，这种“原型式继承”是JsvaScript的核心特征，”除了字符串、数字、true、false、null、undefined之外，JsvaScript中的值都是对象。“
+
+对象的三大特性
+
+> 对象的原型(prototype) 指向一个继承自它的原型对象的对象
+>
+> 对象的类(class) 是一个标示对象类型的字符串
+>
+> 对象的扩展标记(extensible flag) 在es5中指明了是否可以向该对象添加新属性
+
+###### 4.1 创建对象
+
+4.1.1 Object.create()函数
+
+4.1.2 对象直接量
+
+```javascript
+var empty = {};
+var point = {x: 0,y: 0, "for": "all audiences"};
+```
+
+4.1.3 new
+
+```javascript
+var o = new Object();
+var a = new Array();
+```
+
+###### 4.2 原型
+
+> 每一个JsvaScript对象(null除外)都和另一个对象相关联，此处”另一个对象“就是原型，每一个对象都从原型继承属性。没有原型的对象为数不多，Object.prototype就是其中之一，它不继承任何属性。
+
+```javascript
+var a = new Array(); //a 的原型即为 Array.prototype 而Array.prototype对象的属性又继承自Object.prototype，故a对的属性同时继承自Array.prototype和Array.prototype---原型链接
+//绝对空对象
+var o = new Object(null); //o不继承任何属性方法，如toString()
+//普通空对象{}
+var o = new Object(Object.prototype); //同{}和new Object()
+```
+
+###### 4.3 继承
+
+4.3.1 自定义inherit()函数
+
+```javascript
+//返回一个继承自原型对象p的新对象
+function inherit(p){
+    if(typeof p !== 'object' && typeof p !== 'function') return;
+    if(p == null) throw TypeError();
+    function f() {}; //定义一个空构造函数
+    f.prototype = p; //将其原型对象设为p
+    return new f(); //使用构造函数f()创建p的继承对象
+}
+```
+
+> 对象属性的赋值或修改操作不会涉及到原型链，只有查询对象属性的时候才会涉及到
+
+###### 4.4  属性访问错误
+
+```javascript
+Object.prototype = 0 //赋值失败 但没报错 Object.prototype没有被修改(非严格模式下)
+```
+
+###### 4.5 delete
+
+```javascript
+//当delete删除成功或没有任何副作用时返回true
+o = {x: 1}
+delete o.x; // true
+delete o.x; // true 尽管o.x已经不存在
+delete o.toString(); // true 什么也不做
+delete 1 // true 无意义 
+
+//delete不能删除那些可配置性为false的属性(可以删除不可扩展对象的可配置属性)
+delete Object.prototype //不能删除 属性是不可配置的
+var x = 1;
+delete this.x; //不能删除这个属性
+function f() {}
+delete this.f; //不能删除全局函数
+
+this.x = 1;
+delete x; //非严格模式下可删除 严格模式下会报语法错误
+delete this.x; //严格模式下可删除
+```
 
