@@ -379,11 +379,30 @@ for(a[i++] in o) //此处为a[i++] 而不能为a[i],否则i不会自增导致数
 
 对象的三大特性
 
-> 对象的原型(prototype) 指向一个继承自它的原型对象的对象
->
+> 对象的原型(prototype) 指向一个继承自它的原型对象的对象，检测一个对象是否是另一个对象的原型可用p.isPropertyOf(o)
+
 > 对象的类(class) 是一个标示对象类型的字符串
->
-> 对象的扩展标记(extensible flag) 在es5中指明了是否可以向该对象添加新属性
+
+```javascript
+//判断一个对象的类
+function calssof(o) {
+  if(o === null) return NUll;
+  if(o === undefined) return Undefined;
+  return Object.prototype.toString.call(o).slice(8, -1);
+}
+console.log(calssof(1)); // => Number           
+console.log(calssof("")); // => String
+console.log(calssof(false)); // => Boolean
+console.log(calssof({})); // => Object
+console.log(calssof([])); // => Array
+console.log(calssof(/./)); // => RegExp
+console.log(calssof(window)); // => Window(客户端宿主对象)
+function f() {}
+console.log(calssof(new of())); // => Objec
+```
+
+> 对象的扩展标记(extensible flag) 用以表示是否可以给对象添加新属性，在es5中指明了是否可以向该对象添加新属性，所有内置对象和自定义对象都是显示可扩展的，宿主对象的可扩展性由JavaScript引擎决定。
+> es5中Object.esExtensible()判断对象是否可扩展，还可用Object.seal()、Object.preventExtensions()、Object.freeze()设置对象
 
 ###### 4.1 创建对象
 
@@ -459,4 +478,139 @@ this.x = 1;
 delete x; //非严格模式下可删除 严格模式下会报语法错误
 delete this.x; //严格模式下可删除
 ```
+
+###### 4.6 检测属性
+
+> 判断某个属性是否存在于对象中，可用in、hasOwnPreperty()、propertyIsEnumerable()或属性查询，hasOwnPreperty()用来检测给定对象的自有属性，对于继承属性会返回false，propertyIsEnumerable()是hasOwnPreperty()的增强版，这个属性需同时满足是自有属性且可枚举性为true
+>
+> 当检测属性值为undefined对象的属性时只能用in，如：{x: undefined}只有 "x" in {x: undefined}  =》 true
+>
+> Object.keys()返回的是对象中的可枚举自有属性名称数组，Object.getOwnPropertyNames()返回的是全部自有属性名称数组
+
+###### 4.7 存取器属性getter和setter
+
+```javascript
+var p = {
+    //x和y是普通的可读写数据属性
+    x: 1.0,
+    y: 1.0,
+    //r是可读写的存取器属性，它带有getter和setter。
+    //函数体结束后不要忘记带上逗号
+    get r() {
+        return Math.sqrt(this.x * this.x + this.y * this.y);
+    },
+    set r(newvalue) { //可利用p.r = ？给r设置值
+        var oldvalue = Math.sqrt(this.x * this.x + this.y * this.y);
+        var ratio = newvalue / oldvalue;
+        this.x *= ratio;
+        this.y *= ratio;
+    },
+    //theta是只读存取器属性，它只有getter方法，而不能利用p.theta = ？给theta设置值
+    get theta() {
+        return Math.atan2(this.y, this.x);
+    }
+};
+```
+
+###### 4.7 属性的特性
+
+> 它的值(value)、可写性(writable)、可枚举性(enumerable)、可配置性(configurable)
+>
+> 存取器属性getter和setter不具有值特性和可写性(由是否存在setter方法决定)，因此其四个属性是读取(get)、写入(set)、可枚举性、可配置性
+>
+> es5中定义了一个名为“属性描述符”的对象，这个对象的属性和它们所描述的属性特性是同名的，因此描述符对象的属性有value、writable、enumerable、configurable, 存取器属性描述符用get、set代替value和writable
+>
+> 通过调用Object.getOwnPropertyDescriptor()可获得某个对象特定属性(自有属性)的属性描述符
+
+```javascript
+Object.getOwnPropertyDescriptor({x: 1}, "x") // => 返回：{value: 1、writable:true、enumerable:true、configurable:true} 对于继承属性和不存在的属性则返回undefined
+```
+
+> 要想获得继承属性的特性，需遍历原型链Object.getPrototypeOf()
+
+
+
+> 要想设置属性的特性，需调用Object.defineProperty()，此方法要么修改已有属性要么新建自有属性，但不能修改继承属性，要同时修改或创建某个对象中的多个属性用Object.defineProperties()，***还有要熟悉规则***
+
+```javascript
+var o = {};
+//添加一个不可枚举属性x，赋值为1，不一定必须必包含所有四个特性，默认对应的特性值是false或undefined
+Object.defineProperty(o,"x",{value: 1,writable: true,enumerable: false,configurable: true})
+o.x // => 1 //属性"x"存在
+Object.keys(o) // => [] //却不可枚举
+
+Object.defineProperties({},{
+  x: {value: 1,writable: true,enumerable: false,configurable: true},
+  y: {value: 1,writable: true,enumerable: false},
+  r: {
+      get: function () { return Math.sprt(this.x * this.x + this.y * this.y) },
+      enumerable: false,
+      configurable: true
+  },
+})
+
+//复制属性的特性,实现extend()
+Object.defineProperty(Object.prototype,
+                     "extend",
+                     {
+                     writable: true,
+                     enumerable: false,
+                     configurable: true,
+                     value: function(o) {
+                       	//Object.getOwnPropertyNames():返回对象可枚举和不可枚举自有属性的集合
+  						var names = Object.getOwnPropertyNames(o);
+						for(var i = 0; i < names.length; i++){
+							if(names[i] in this) continue;
+                          	  var desc = Object.getOwnPropertyDescriptor(o, names[i]);
+							Object.defineProperty(this, names[i], desc);
+                          }
+				    }
+				    });
+```
+
+#### 五、函数
+
+> 在JavaScript中，函数即对象
+
+###### 5.1 函数的调用
+
+5.1.1 有4种方式调用JavaScript函数：
+
+> 作为函数
+>
+> 作为方法
+>
+> 作为构造函数
+>
+> 通过它们的call()和apply()方法间接调用
+
+5.1.2 函数和方法
+
+> 函数作为对象的属性时称为方法，方法和函数的一个重要区别就是调用上下文
+
+5.1.3  方法调用
+
+> 面向对象编程的核心就是方法和this关键字
+
+```javascript
+var o = {
+  m: function () {
+    var self = this; // 将this的值保存在一个变量中
+    console.log(this === o); // true this就是这个对象
+    f();
+    function f() {
+      console.log(this === o); // false this指向全局对象(非严格模式)或undefined(es5严格模式)
+      console.log(self === o);// true self指向外部函数的this
+    }
+  }
+}
+o.m();
+
+//利用方法的返回值是一个对象时，这个对象还可以再调用自己的方法，这一特性可以形成方法的链式调用
+shape.setX(100).setX(200).setY(300).setSize(400).setOutline("red").setFill("blue").draw();
+```
+
+5.1.4 构造函数的调用
+
+> 如果函数或方法之前带有关键字new，它就构成构造函数调用
 
